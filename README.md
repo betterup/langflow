@@ -1,71 +1,65 @@
-<!-- markdownlint-disable MD030 -->
+# Running LangFlow with Docker
 
-![Langflow logo](./docs/static/img/langflow-logo-color-black-solid.svg)
+This guide will help you get LangFlow up and running using Docker and Docker Compose.
 
+## Prerequisites
 
-[![Release Notes](https://img.shields.io/github/release/langflow-ai/langflow?style=flat-square)](https://github.com/langflow-ai/langflow/releases)
-[![PyPI - License](https://img.shields.io/badge/license-MIT-orange)](https://opensource.org/licenses/MIT)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/langflow?style=flat-square)](https://pypistats.org/packages/langflow)
-[![GitHub star chart](https://img.shields.io/github/stars/langflow-ai/langflow?style=flat-square)](https://star-history.com/#langflow-ai/langflow)
-[![Open Issues](https://img.shields.io/github/issues-raw/langflow-ai/langflow?style=flat-square)](https://github.com/langflow-ai/langflow/issues)
-[![Open in HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Langflow/Langflow?duplicate=true)
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/langflow-ai.svg?style=social&label=Follow%20%40Langflow)](https://twitter.com/langflow)
-[![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCn2bInQrjdDYKEEmbpwblLQ)](https://www.youtube.com/@Langflow)
+- Docker
+- Docker Compose
 
+## Steps
 
-[Langflow](https://langflow.org) is a powerful tool for building and deploying AI-powered agents and workflows. It provides developers with both a visual authoring experience and a built-in API server that turns every agent into an API endpoint that can be integrated into applications built on any framework or stack. Langflow comes with batteries included and supports all major LLMs, vector databases and a growing library of AI tools.
+1. Clone the LangFlow repository:
 
-## ✨ Highlight features
+   ```sh
+   git clone https://github.com/langflow-ai/langflow.git
+   ```
 
-1. **Visual Builder** to get started quickly and iterate. 
-1. **Access to Code** so developers can tweak any component using Python.
-1. **Playground** to immediately test and iterate on their flows with step-by-step control.
-1. **Multi-agent** orchestration and conversation management and retrieval.
-1. **Deploy as an API** or export as JSON for Python apps.
-1. **Observability** with LangSmith, LangFuse and other integrations.
-1. **Enterprise-ready** security and scalability.
+2. Navigate to the `docker_example` directory:
 
-## ⚡️ Quickstart
+   ```sh
+   cd langflow/docker_example
+   ```
 
-Langflow works with Python 3.10 to 3.13.
+3. Run the Docker Compose file:
 
-Install with uv **(recommended)** 
+   ```sh
+   docker compose up
+   ```
 
-```shell
-uv pip install langflow
-```
+LangFlow will now be accessible at [http://localhost:7860/](http://localhost:7860/).
 
-Install with pip
+## Docker Compose Configuration
 
-```shell
-pip install langflow
-```
+The Docker Compose configuration spins up two services: `langflow` and `postgres`.
 
-## 📦 Deployment
+### LangFlow Service
 
-### Self-managed
+The `langflow` service uses the `langflowai/langflow:latest` Docker image and exposes port 7860. It depends on the `postgres` service.
 
-Langflow is completely open source and you can deploy it to all major deployment clouds. Follow this [guide](https://docs.langflow.org/deployment-docker) to learn how to use Docker to deploy Langflow.
+Environment variables:
 
-### Fully-managed by DataStax
+- `LANGFLOW_DATABASE_URL`: The connection string for the PostgreSQL database.
+- `LANGFLOW_CONFIG_DIR`: The directory where LangFlow stores logs, file storage, monitor data, and secret keys.
 
-DataStax Langflow is a full-managed environment with zero setup. Developers can [sign up for a free account](https://astra.datastax.com/signup?type=langflow) to get started.
+Volumes:
 
-## ⭐ Stay up-to-date
+- `langflow-data`: This volume is mapped to `/app/langflow` in the container.
 
-Star Langflow on GitHub to be instantly notified of new releases.
+### PostgreSQL Service
 
-![Star Langflow](https://github.com/user-attachments/assets/03168b17-a11d-4b2a-b0f7-c1cce69e5a2c)
+The `postgres` service uses the `postgres:16` Docker image and exposes port 5432.
 
-## 👋 Contribute
+Environment variables:
 
-We welcome contributions from developers of all levels. If you'd like to contribute, please check our [contributing guidelines](./CONTRIBUTING.md) and help make Langflow more accessible.
+- `POSTGRES_USER`: The username for the PostgreSQL database.
+- `POSTGRES_PASSWORD`: The password for the PostgreSQL database.
+- `POSTGRES_DB`: The name of the PostgreSQL database.
 
----
+Volumes:
 
-[![Star History Chart](https://api.star-history.com/svg?repos=langflow-ai/langflow&type=Timeline)](https://star-history.com/#langflow-ai/langflow&Date)
+- `langflow-postgres`: This volume is mapped to `/var/lib/postgresql/data` in the container.
 
-## ❤️ Contributors
+## Switching to a Specific LangFlow Version
 
-[![langflow contributors](https://contrib.rocks/image?repo=langflow-ai/langflow)](https://github.com/langflow-ai/langflow/graphs/contributors)
-
+If you want to use a specific version of LangFlow, you can modify the `image` field under the `langflow` service in the Docker Compose file. For example, to use version 1.0-alpha, change `langflowai/langflow:latest` to `langflowai/langflow:1.0-alpha`.

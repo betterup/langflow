@@ -1,0 +1,47 @@
+name: Deploy us-east-1-staging chart
+
+on: workflow_call
+
+env:
+  AWS_REGION: "us-east-1"
+  AWS_ROLE: "arn:aws:iam::362799379729:role/gha-langflow-us-east-1"
+
+jobs:
+  deploy-chart:
+    name: Deploy chart
+    runs-on: ubuntu-latest
+    environment: us-east-1-staging
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.12.0'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name us-east-1-staging
+
+      - name: Deploy Helm chart
+        run: |
+          CHART_VERSION="0.1.${GITHUB_RUN_NUMBER}"
+          IMAGE_TAG="${GITHUB_SHA}"
+          
+          helm upgrade --install langflow \
+            oci://362799379729.dkr.ecr.us-east-1.amazonaws.com/betterup-helm-charts/langflow \
+            --version ${CHART_VERSION} \
+            --namespace default \
+            --values release/kubernetes/langflow/values/us-east-1-staging/values.yaml \
+            --set image.version=${IMAGE_TAG} \
+            --wait --timeout=300s

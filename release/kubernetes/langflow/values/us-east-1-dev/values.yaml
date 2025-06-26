@@ -1,0 +1,50 @@
+# Dev environment specific values
+name: langflow
+
+image:
+  repo: 362799379729.dkr.ecr.us-east-1.amazonaws.com/betterup-langflow-us-east-1
+  version: latest
+  pullPolicy: Always
+
+# Reduced resources for dev
+resources:
+  min:
+    cpu: 200m
+    memory: 512Mi
+    ephemeral_storage: 1Gi
+  max:
+    cpu: 1
+    memory: 2Gi
+    ephemeral_storage: 4Gi
+
+# Lower scaling for dev
+hpa:
+  minReplicas: 1
+  maxReplicas: 3
+  cpuAverageUtilization: 80
+
+# Database configuration - will be populated from infrastructure
+database:
+  host: "langflow-us-east-1-dev.cluster-xxx.us-east-1.rds.amazonaws.com"  # Placeholder
+  port: 5432
+  name: langflow
+  sslMode: require
+
+# Environment variables for dev
+env:
+  LANGFLOW_CONFIG_DIR: "/app/langflow"
+  LANGFLOW_LOG_LEVEL: "DEBUG"
+  LANGFLOW_AUTO_LOGIN: "false"
+
+# Service account with AWS IAM role
+serviceAccount:
+  create: true
+  name: langflow
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::362799379729:role/langflow-service-account-us-east-1-dev"  # Placeholder
+
+# Datadog tags for dev
+datadog:
+  repository_url: github.com/langflow-ai/langflow
+  web:
+    service: langflow-dev

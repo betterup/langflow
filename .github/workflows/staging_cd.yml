@@ -1,0 +1,26 @@
+name: Deploy - Staging CD
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  workflow_dispatch:
+
+jobs:
+  build_images:
+    name: Build images
+    uses: ./.github/workflows/build_and_push_staging_image.yml
+    secrets: inherit
+  
+  push_us_east_1_staging_chart:
+    name: Push chart to us-east-1-staging
+    needs: build_images
+    uses: ./.github/workflows/push_us_east_1_staging_chart.yml
+    secrets: inherit
+  
+  deploy_us_east_1_staging_helm_chart:
+    name: Deploy us-east-1-staging helm chart
+    needs: push_us_east_1_staging_chart
+    uses: ./.github/workflows/deploy_us_east_1_staging_chart.yml
+    secrets: inherit

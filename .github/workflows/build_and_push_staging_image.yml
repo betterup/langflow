@@ -1,0 +1,60 @@
+name: Build and push image - Staging
+
+on: workflow_call
+
+env:
+  AWS_REGION: "us-east-1"
+  AWS_ROLE: "arn:aws:iam::362799379729:role/gha-langflow-us-east-1"
+  TAGS_PREFIX: "362799379729.dkr.ecr.us-east-1.amazonaws.com/betterup-langflow-us-east-1"
+
+jobs:
+  push-image:
+    name: Push image
+    runs-on: ubuntu-latest
+    environment: us-east-1-staging
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      chart_version: ${{ steps.outputs.outputs.version }}
+      sha_short: ${{ steps.outputs.outputs.sha_short }}
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Tags for Docker
+        id: tags
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.TAGS_PREFIX }}
+          tags: |
+            type=schedule,pattern=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=ref,event=branch
+            type=sha,format=long
+
+      - uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: .
+          file: Dockerfile.production
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: ${{ steps.tags.outputs.labels }}

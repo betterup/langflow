@@ -1,0 +1,72 @@
+# These are default values which should get overwritten by the specific environment's values file
+name: langflow
+
+servicePort: 7860
+serviceHost: langflow.default.svc.cluster.local
+
+image:
+  repo: 362799379729.dkr.ecr.us-east-1.amazonaws.com/betterup-langflow-us-east-1
+  version: default
+  pullPolicy: Always
+
+resources:
+  min:
+    cpu: 500m
+    memory: 1Gi
+    ephemeral_storage: 2Gi
+  max:
+    cpu: 2
+    memory: 4Gi
+    ephemeral_storage: 8Gi
+
+hpa:
+  minReplicas: 2
+  maxReplicas: 6
+  cpuAverageUtilization: 70
+
+datadog:
+  repository_url: github.com/langflow-ai/langflow
+  web:
+    service: langflow
+
+# Database configuration
+database:
+  host: "" # Will be set from infrastructure outputs
+  port: 5432
+  name: langflow
+  sslMode: require
+
+# Environment variables
+env:
+  LANGFLOW_CONFIG_DIR: "/app/langflow"
+  LANGFLOW_LOG_LEVEL: "INFO"
+  LANGFLOW_AUTO_LOGIN: "false"
+
+# Health check configuration
+healthCheck:
+  path: "/health"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Service account
+serviceAccount:
+  create: true
+  name: langflow
+  annotations: {}
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Istio configuration (for future public exposure)
+istio:
+  exposePublic: false
+  defineGateway: false
+  ingressNamespace: istio-ingress
+  subdomain: langflow
+  tld: ""

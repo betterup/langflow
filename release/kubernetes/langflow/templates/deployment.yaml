@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "langflow.fullname" . }}
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+    tags.datadoghq.com/service: {{ .Values.datadog.web.service }}
+    tags.datadoghq.com/version: {{ .Values.image.version }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "langflow.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "langflow.selectorLabels" . | nindent 8 }}
+        tags.datadoghq.com/service: {{ .Values.datadog.web.service }}
+        tags.datadoghq.com/version: {{ .Values.image.version }}
+    spec:
+      serviceAccountName: {{ include "langflow.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repo }}:{{ .Values.image.version }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.servicePort }}
+              protocol: TCP
+          env:
+            - name: LANGFLOW_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "langflow.fullname" . }}-secrets
+                  key: database-url
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            # Datadog APM
+            - name: DD_ENV
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/env']
+            - name: DD_SERVICE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/service']
+            - name: DD_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['tags.datadoghq.com/version']
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthCheck.path }}
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+            failureThreshold: 2
+          resources:
+            requests:
+              cpu: {{ .Values.resources.min.cpu }}
+              memory: {{ .Values.resources.min.memory }}
+              ephemeral-storage: {{ .Values.resources.min.ephemeral_storage }}
+            limits:
+              cpu: {{ .Values.resources.max.cpu }}
+              memory: {{ .Values.resources.max.memory }}
+              ephemeral-storage: {{ .Values.resources.max.ephemeral_storage }}
+          volumeMounts:
+            - name: langflow-data
+              mountPath: /app/langflow
+      volumes:
+        - name: langflow-data
+          emptyDir: {}

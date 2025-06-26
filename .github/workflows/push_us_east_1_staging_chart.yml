@@ -1,0 +1,47 @@
+name: Push chart to us-east-1-staging
+
+on: workflow_call
+
+env:
+  AWS_REGION: "us-east-1"
+  AWS_ROLE: "arn:aws:iam::362799379729:role/gha-langflow-us-east-1"
+
+jobs:
+  push-chart:
+    name: Push chart
+    runs-on: ubuntu-latest
+    environment: us-east-1-staging
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.12.0'
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Update Chart version
+        run: |
+          # Update Chart.yaml with new version
+          CHART_VERSION="0.1.${GITHUB_RUN_NUMBER}"
+          sed -i "s/version: .*/version: ${CHART_VERSION}/" release/kubernetes/langflow/Chart.yaml
+          echo "CHART_VERSION=${CHART_VERSION}" >> $GITHUB_ENV
+
+      - name: Package and push Helm chart
+        run: |
+          cd release/kubernetes
+          helm package langflow
+          helm push langflow-${CHART_VERSION}.tgz oci://362799379729.dkr.ecr.us-east-1.amazonaws.com/betterup-helm-charts
